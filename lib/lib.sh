@@ -2,7 +2,7 @@
 
 # This script is design to be used by users
 # To use this libary:
-#   source "$ADW_HOME/lib/lib.sh"
+#     source "$ADW_HOME/lib/lib.sh"
 # All shell functions in this script will prefix with `adw` to avoid conflict
 
 # NOTE: it will also reject if variable is empty (zero length)
@@ -15,7 +15,7 @@ adw_assert_var_exist() {
 }
 
 # append a string to a file if this line not already exists
-# Useful to make scripts idempotent
+# useful to make scripts idempotent
 # usage: adw_append_if_not_exist line file
 adw_append_if_not_exist() {
     adw_assert_var_exist "$1"
@@ -25,7 +25,7 @@ adw_append_if_not_exist() {
     fi
 }
 
-# sudo version
+# sudo version; useful for some system config files
 adw_sudo_append_if_not_exist() {
     adw_assert_var_exist "$1"
     adw_assert_var_exist "$2"
@@ -34,6 +34,7 @@ adw_sudo_append_if_not_exist() {
     fi
 }
 
+# source a shell script if it exists
 # usage: adw_source_if_exist file
 adw_source_if_exist() {
     adw_assert_var_exist "$1"

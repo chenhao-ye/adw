@@ -155,7 +155,7 @@ class Target:
                 f'    exit 1\n' \
                 f'fi\n'
             f.write(cmd_str)
-        f.write(f"# Trash SUCCESS signal files\n")
+        f.write(f"# Trash DONE signal files\n")
         f.write(
             f'rm -rf "$ADW_PROJ_ROOT_DIR/{CMDS_DIR}/{target_dir}/{FNAME_DONE}"\n'
         )
@@ -166,20 +166,12 @@ class Target:
                 f'    find "$ADW_PROJ_ROOT_DIR/{CMDS_DIR}/{self.pred.name}" -name "{FNAME_DONE}" -delete\n' \
                 f'fi\n'
             f.write(cmd_str)
-        if self.pred.pass_unmatched_args:
-            f.write(f'{self.cmd} "$@"\n')
-        else:
-            f.write(f'{self.cmd}\n')
 
-        # create signal file if successful
-        cmd_str = \
-            f'ret=$?\n' \
-            f'if [ $ret = 0 ]; then\n' \
-            f'    touch "$ADW_PROJ_ROOT_DIR/{CMDS_DIR}/{target_dir}/{FNAME_DONE}"\n' \
-            f'else\n' \
-            f'    exit $ret\n' \
-            f'fi'
-        f.write(cmd_str)
+        f.write(f'{self.cmd}')
+        if self.pred.pass_unmatched_args:
+            f.write(' "$@"')
+        f.write(f' &&\n' \
+            f'    touch "$ADW_PROJ_ROOT_DIR/{CMDS_DIR}/{target_dir}/{FNAME_DONE}"\n')
 
 
 class Pred:
@@ -325,12 +317,11 @@ if __name__ == "__main__":
             pred.dump()
         # write "help"
         with open(f"{CMDS_DIR}/{FNAME_HELP}", "wt") as f:
-            pname_max_len = max(len(pname) for pname in pred_map.keys())
-            pname_padded_len = (pname_max_len + 3) // 8 * 8 + 4
             for pred in pred_map.values():
                 f.write(f"  {pred.name}: ")
-                for _ in range(pname_padded_len - len(pred.name)):
-                    f.write(' ')
+                pname_len = len(pred.name)
+                num_space = max((pname_len + 3) // 8 * 8 + 4, 12) - pname_len
+                f.write(' ' * num_space)
                 f.write(f"{pred.help}\n")
         dump_env(config)
     except strictyaml.YAMLError as e:
