@@ -1,0 +1,92 @@
+#!/bin/bash
+
+export ADW_HOME="${ADW_HOME:=$HOME/.adwarts}"
+
+# Load environment variables
+# shellcheck disable=SC1091
+source "$ADW_HOME/env/env.sh"
+# shellcheck disable=SC1091
+source "$ADW_HOME/lib/lib.sh"
+
+print_adw_usage() {
+	echo "Usage: adw <COMMAND> [...]"
+	echo ""
+	echo "COMMAND:"
+	echo "  proj <SUBCOMMAND>:    Manage ADW project."
+	echo "  <PREDICATE>:  Execute self-defined predicates."
+	echo ""
+	echo "SUBCOMMAND:"
+	echo "  init [-f]:    Initialize a project for ADW; force reinitialization if \`-f\` is"
+	echo "                provided."
+	echo "  load:         Load the current project; will reload if already."
+	echo "  log [--less|--vim]:   Show execution history and their status (on a pager if"
+	echo "                specified)."
+	echo "  list:         List all projects managed by ADW."
+	echo "  add:          Add the current project to ADW global project list."
+	echo "  remove <NAME>:        Remove the project specified by NAME from ADW global"
+	echo "                project list."
+	echo "  global <-u|NAME>:     Set a project specified by NAME to be globally"
+	echo "                accessible; do unset instead if \`-u\` is set."
+	echo "  cleanup:      Remove nonexisting projects from the list."
+}
+
+print_adw_usage_and_exit() {
+	print_adw_usage
+	exit 1
+}
+
+load_proj() {
+	# first check if the current working directory is an ADW project
+	if [ -d "$ADW_PROJ_CTRL_DIR" ]; then
+		proj_root="$PWD"
+	elif [ ! -L "$ADW_GLOBAL_LINK" ]; then
+		print_adw_usage_and_exit
+	else
+		proj_root="$(readlink "$ADW_GLOBAL_LINK")"
+		# TODO: handle readlink failure?
+	fi
+	export ADW_PROJ_ROOT_DIR="$proj_root"
+	export ADW_PROJ_DATA="$ADW_PROJ_ROOT_DIR/$ADW_PROJ_DATA_DIR"
+	if [ ! -d "$ADW_PROJ_ROOT_DIR/$ADW_PROJ_CMDS_DIR" ]; then
+		echo "Detect the project is not loaded yet..."
+		echo "Try \`adw proj load\` first..."
+		echo ""
+		print_adw_usage_and_exit
+	fi
+	if [ "$ADW_PROJ_ROOT_DIR/$ADW_PROJ_CONFIG" -nt "$ADW_PROJ_ROOT_DIR/$ADW_PROJ_CMDS_DIR" ]; then
+		echo "WARN: Detect $ADW_PROJ_CONFIG has modified recently..."
+		echo "Try \`adw proj load\` to apply latest modification"
+	fi
+	adw_source_if_exist "$ADW_PROJ_ROOT_DIR/$ADW_PROJ_ENV"
+}
+
+if [ $# = 0 ]; then
+	load_proj
+	# let exec.sh to print predicate help
+	# shellcheck disable=SC1091
+	source "$ADW_HOME/src/exec.sh"
+	adw_exec "$@"
+	exit $?
+fi
+
+case $1 in
+proj)
+	if [ $# = 1 ]; then
+		print_adw_usage_and_exit
+	fi
+	# shellcheck disable=SC1091
+	source "$ADW_HOME/src/proj.sh"
+	adw_proj "${@:2}"
+	;;
+-*) # option-style naming are not allowed
+	print_adw_usage_and_exit
+	;;
+*)
+	load_proj
+	# shellcheck disable=SC1091
+	source "$ADW_HOME/src/exec.sh"
+	adw_exec "$@"
+	;;
+esac
+
+exit $?
