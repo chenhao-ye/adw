@@ -40,7 +40,7 @@ ADW uses a workflow model named "predicates and hierarchical targets." Let's tal
 
 - For predicate `init`, all you want is some system-wide setting; it doesn't matter whether it is initialized for uFS or ext4.
 - For `build`, you want to specify whether build with uFS's APIs or ext4's APIs
-- For `run`, you want to specify not only specify uFS or ext4 but also which input traces to feed (suppose we have three traces collected from YCSB, named as `ycsb-a` to `ycsb-c`)
+- For `run`, you want to specify not only uFS or ext4 but also which input traces to feed (suppose we have three traces collected from YCSB, named as `ycsb-a` to `ycsb-c`)
 
 This model gives us the tree-like structure below. Every node on this tree is either a predicate (`init`, `build`, `run`) or a target (e.g. `leveldb`, `ufs`, `ycsb-c`, etc). Predicates are in a linear relationship with each other (e.g. `init` is before `build`), and targets are in a hierarchical relationship (e.g. `ufs` is under `leveldb`).
 
