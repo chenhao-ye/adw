@@ -6,7 +6,6 @@
 # ADW_HOME should be set by environment or adw main script
 export ADW_HOME="${ADW_HOME:=$HOME/.adwarts}"
 
-export ADW_META="$ADW_HOME/meta"
 export ADW_LINKS="$ADW_HOME/links"
 export ADW_GLOBAL_LINK="$ADW_LINKS/ADW_GLOBAL"
 

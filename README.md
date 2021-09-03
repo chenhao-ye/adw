@@ -1,10 +1,10 @@
 # Artifact Demonstration Wizard
 
-Artifact Demonstration Wizard (ADW) is a framework to demonstrate the workflow of a project.
+Artifact Demonstration Wizard (ADW) is a framework to organize the experiment workflow of a project.
 
-ADW is designed to tackle these troublesome scenarios:
+If any of the problems below had troubled you, you will probably like ADW:
 
-- The codebase is supposed to be built with configuration A for experiment 1 and with configuration B for experiment 2. You just finished experiment 1. Then you start experiment 2 but you forget to rebuild the codebase with configuration B. As a consequence, it produces some garbage outputs so you have to rerun it, in the best case; in the worst case, you never realize this is garbage output...
+- The codebase is supposed to be built with configuration A for experiment 1 and with configuration B for experiment 2. You just finished experiment 1. Then you start experiment 2 but you forget to rebuild the codebase with configuration B. In the best case, it produces some garbage outputs so you have to rerun it; in the worst case, you never realize this is garbage output...
 
 - You have several experiments to run and you start one of them. The experiment takes hours, so you decide to switch to YouTube when waiting (it's fully justified, right?). Hours later, you pause YouTube and want to check out the experiment results, but you forget which experiment you started hours ago...
 
@@ -12,36 +12,46 @@ ADW is designed to tackle these troublesome scenarios:
 
 - You run an experiment several times on a few branches. A week later, you track down a problem and want to see if it presented in a branch's log earlier. However, you have no way to tell which log was from which branch's code. Literally, no way.
 
-If any problem above had troubled you, you will probably like ADW.
+Typically, people write ad hoc scripts to tackle the problems above (or just live with them, pretending they won't happen again). ADW is designed to organize the workflow and do the dirty work for you.
 
 ## Install
 
-To install adw:
+To install `adw`:
 
 ```bash
 ./install.sh
-echo 'export ADW_HOME="$HOME/.adwarts"' >> .bashrc # or .zshrc
-echo 'export PATH="$PATH:$ADW_HOME/bin"' >> .bashrc
+echo 'export ADW_HOME="$HOME/.adwarts"' >> ~/.bashrc # or .zshrc
+echo 'export PATH="$PATH:$ADW_HOME/bin"' >> ~/.bashrc
+source ~/.bashrc
 ```
 
-This will install adw codebase to `~/.adwarts`. To uninstall:
+This will install ADW to `~/.adwarts`.
+
+To uninstall:
 
 ```bash
 ./install.sh -u
+# you may need to remove environment variables settings from ~/.bashrc yourself
 ```
 
 ## Overview
 
-To begin with, the user provides a configuration file `adw.yaml`, located at the top-level directory of a codebase (just like `Dockerfile` and `Makefile`). `adw.yaml` describes the workflow of this codebase and what scripts to run for every path of workload. The detailed tutorials of `adw.yaml` can be found [here](doc), and below only focuses on the semantics level and ignore syntax so far.
+ADW uses a workflow model named "predicates and hierarchical targets." Let's talk about it with a quick example. Suppose you have developed a novel user-level filesystem called uFS. Now you want to automate the workflow of compiling and benchmarking uFS and ext4 against LevelDB workload. The workflow could be divided into three steps: `init`, `build`, and `run`. We call these steps "predicates." The workflow of this experiment could be modeled as:
 
-ADW uses a restricted workflow model named "predicates and multilevel targets." To begin with, suppose you have developed a novel user-level filesystem called uFS (you can learn more story of uFS in [a later section](#why-adw)). Now you want to automate the workflow of building and benchmarking uFS and ext4 against LevelDB workload. The workflow could be divided into three steps: `init`, `build`, and `run`. We call these steps "predicates". Each predicate has a set of targets. The hierarchy relationship is shown below and we will walk through it.
+- For predicate `init`, all you want is some system-wide setting; it doesn't matter whether it is initialized for uFS or ext4.
+- For `build`, you want to specify whether build with uFS's APIs or ext4's APIs
+- For `run`, you want to specify not only specify uFS or ext4 but also which input traces to feed (suppose we have three traces collected from YCSB, named as `ycsb-a` to `ycsb-c`)
+
+This model gives us the tree-like structure below. Every node on this tree is either a predicate (`init`, `build`, `run`) or a target (e.g. `leveldb`, `ufs`, `ycsb-c`, etc). Predicates are in a linear relationship with each other (e.g. `init` is before `build`), and targets are in a hierarchical relationship (e.g. `ufs` is under `leveldb`).
 
 ```
 +- init
+|
 +- build
 |    +- leveldb
 |         +- ufs
 |         +- ext4
+|
 +- run
      +- leveldb
           +- ufs
@@ -54,38 +64,34 @@ ADW uses a restricted workflow model named "predicates and multilevel targets." 
                +- ycsb-c
 ```
 
-For the tree above, the user provide a script for each leaf node (e.g. `init`, `build/leveldb/ufs`, `run/leveldb/ext4/ycsb-a`) in `adw.yaml` indicate the action for this path.
+In addition, you want to enforce these constraints:
 
-For predicate `init`, all you want is some system-wide setting (e.g. set a fixed CPU frequency); it doesn't matter whether it is initialized for uFS or ext4. We say this predicate has no target and itself is a leaf node. By running this command, adw invoke the script for initialization:
+- One must do `init` before any `build`.
+- Before running LevelDB for uFS (regardless which trace), one must compile LevelDB with uFS's APIs first. Same for ext4.
 
-```bash
-adw init
-```
+When using ADW, the user provides a configuration file `adw.yaml`, located at the top-level directory of the uFS codebase (just like `Dockerfile` and `Makefile`). `adw.yaml` describes the tree-like workflow above and specifies what scripts/shell commands to run for each path from a predicate to a leaf (e.g. `init`, `build/leveldb/ufs`, `run/leveldb/ufs/ycsb-a`). The detailed tutorials of `adw.yaml` can be found [here](doc).
 
-For `build` and `run`, there are specific patterns to do the job. First, when benchmarking against LevelDB workload, you want to specify whether build LevelDB with uFS's APIs or ext4's APIs. The corresponds to two targets `leveldb/ufs` and `leveldb/ext4`. We call them "multilevel targets" since they are both subtargets of `leveldb`. To compile LevelDB with uFS's APIs (again, this is a leaf node on the tree above):
-
-```bash
-adw build leveldb ufs
-```
-
-Now you want to run LevelDB, and you have multiple input traces to feed (e.g. `ycsb-a` to `ycsb-c`). To feed `ycsb-a`:
-
-```bash
-adw run leveldb ufs ycsb-a
-```
-
-At this point, you are free to feed any traces as long as they are subtargets of `leveldb/ufs`. However, if you try to run leveldb on ext4:
+ADW will load `adw.yaml` and enforce the constraints for you. For example, if you `build` without `init`:
 
 ```console
-$ adw run leveldb ext4
+$ adw build leveldb ufs
+ADW: Execution rejected: build/leveldb/ufs
+  Dependencies unsatisfied:
+    - init
+```
+
+Or you `run` with a wrong target built before.
+
+```console
+$ adw init
+$ adw build leveldb ufs
+$ adw run leveldb ext4 ycsb-a
 ADW: Execution rejected: run/leveldb/ext4/ycsb-a
   Dependencies unsatisfied:
     - build/leveldb/ext4
 ```
 
-You get rejected because you have never built LevelDB using ext4's APIs. This is captured by the dependency rule: **Executing a leaf node requires the successful execution of the same leaf node on the previous predicate; if the current leaf node doesn't present on the previous predicate, requires its longest (and only, actually), prefix that appears as a leaf.** In this example, `run/leveldb/ext4/ycsb-a` first requires the successful execution of `build/leveldb/ext4/ycsb-a`, but this target doesn't exist, so it requires its prefix `build/leveldb/ext4` instead, which is a leaf node. You may now notice that previously we can execute `build/leveldb/ufs` because of the success of `init`.
-
-The dependency enforcement also provides a user-friendly help message for "what is expected next" if the user only provides a path that does not reach a leaf node:
+The dependency enforcement also comes with a user-friendly help message for "what is expected" if an incorrect path is provided:
 
 ```console
 $ adw run leveldb
@@ -98,15 +104,15 @@ $ adw run leveldb wrong_target
 Usage: adw run leveldb {ext4|ufs} [...]
 ```
 
-For fancier usage, you may want to pass some command-line arguments to some leaf node's action script.
+For fancier usage, you could pass additional command-line arguments to the script:
 
 ```bash
 adw run leveldb ufs ycsb-a --duration 20
 ```
 
-ADW will recognize `run/leveldb/ufs/ycsb-a` reaches a leaf node, and then pass the rest of command-line arguments to the action script indicated by `run/leveldb/ufs/ycsb-a`.
+ADW will recognize `run/leveldb/ufs/ycsb-a` reaching a leaf and then pass the rest of command-line arguments to the script indicated by `run/leveldb/ufs/ycsb-a`.
 
-For more advanced usage, you could set predicate `build` "exclusive": the successful execution of one leaf node under `build` will invalidate other success under `build`. For example, `build/leveldb/ufs` compiles LevelDB with uFS's APIs. Later if you execute `build/leveldb/ext4`, which recompiles LevelDB with ext4's APIs, the previous compilation's binary will be overwritten and the success of `build/leveldb/ufs` should be invalidated:
+For more advanced usage, you could set predicate `build` "exclusive": the successful execution of one leaf under `build` will invalidate other success under `build`. For example, `build/leveldb/ufs` compiles LevelDB with uFS's APIs. Later if you execute `build/leveldb/ext4`, which recompiles LevelDB with ext4's APIs, the previous compilation's binary will be overwritten and the success of `build/leveldb/ufs` should be invalidated:
 
 ```console
 $ adw build leveldb ufs
@@ -117,8 +123,6 @@ ADW: Execution rejected: run/leveldb/ufs/ycsb-a
   Dependencies unsatisfied:
     - build/leveldb/ufs
 ```
-
-Please checkout document for the detailed usage.
 
 All commands that pass dependencies enforcement will be logged. The log includes start time, finish time, duration, git commit id, and the command's exit code.
 
@@ -159,9 +163,3 @@ Commit: 82a016f
 Status: 0
 Command: init
 ```
-
-This is a tiny function but turns out to be extremely useful.
-
-## Why ADW
-
-ADW was actually abstracted from [uFS](https://github.com/WiscADSL/uFS/tree/main/cfs_bench/exprs/artifact_eval)'s submission of artifact evaluation. We would like to automate the experiments to make reviewers' jobs easier. I realized a well-documented script can be as powerful as a detailed README: users can always track down the execution flow of the script to understand what should be done in what order (and know it actually works). Under this observation, `adw.yaml` is designed to be a document by itself. People should be able to read `adw.yaml` to gain a big picture of workflow quickly.

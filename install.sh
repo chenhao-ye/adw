@@ -41,7 +41,6 @@ fi
 
 rm -rf "$ADW_HOME"
 cp -rf ./ "$ADW_HOME"
-mkdir -p "$ADW_META"
 mkdir -p "$ADW_LINKS"
 
 # required to parse yaml config
