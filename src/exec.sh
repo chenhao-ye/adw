@@ -38,6 +38,40 @@ check_deps() {
 	fi
 }
 
+# variables $pred, $matched_path, and $cmd_path must be set
+try_exec() {
+	check_deps "${matched_path:?}"
+	cmd_header=$(head -n 1 "${cmd_path:?}") # first line is always "#!/bin/bash"
+	if [ ! $# = "0" ] && [[ "$cmd_header" != *"adw_pass_unmatched_args"* ]]; then
+		echo "ADW: Unexpected arguments: $*"
+		exit 1
+	fi
+	# Trash DONE signal files
+	if [[ "$cmd_header" == *"adw_is_exclusive"* ]]; then
+		find "$ADW_PROJ_ROOT_DIR/$ADW_PROJ_CMDS_DIR/${pred:?}" -name "$ADW_FNAME_DONE" -delete
+	fi
+	rm -rf "$ADW_PROJ_ROOT_DIR/$ADW_PROJ_CMDS_DIR/${matched_path:?}/$ADW_FNAME_DONE"
+
+	nonce="$RANDOM"
+	# write start log
+	printf "%s %s %s   _ %5d %s\n" "+" "$(date '+%F %T')" \
+		"$(git rev-parse --short HEAD 2>/dev/null || echo "-------")" \
+		"$nonce" "$*" \
+		>>"$ADW_PROJ_ROOT_DIR/$ADW_PROJ_LOG"
+
+	bash "${cmd_path:?}" "$@"
+	ret=$?
+	if [ $ret = 0 ]; then
+		touch "${ADW_PROJ_ROOT_DIR:?}/$ADW_PROJ_CMDS_DIR/${matched_path:?}/$ADW_FNAME_DONE"
+	fi
+	# write finish log
+	printf "%s %s %s %3d %5d %s\n" "-" "$(date '+%F %T')" \
+		"$(git rev-parse --short HEAD 2>/dev/null || echo "-------")" \
+		"$ret" "$nonce" "$*" \
+		>>"$ADW_PROJ_ROOT_DIR/$ADW_PROJ_LOG"
+	exit $ret
+}
+
 adw_exec() {
 	if [ $# = 0 ] && [ ! -d "$ADW_PROJ_ROOT_DIR/$ADW_PROJ_CMDS_DIR" ]; then
 		echo "ADW Internel Error: exec.sh is called incorrectly: $ADW_PROJ_CMDS_DIR not found"
@@ -57,28 +91,16 @@ adw_exec() {
 		exit 1
 	fi
 
-	matched_path="$1"
+	pred="$1"
+	matched_path="$pred"
 	args_left=("${@:2}")
 
 	while true; do
-		if [ -f "$ADW_PROJ_ROOT_DIR/$ADW_PROJ_CMDS_DIR/$matched_path/$ADW_FNAME_CMD" ]; then
-			check_deps "$matched_path"
-			nonce="$RANDOM"
-			# write start log
-			printf "%s %s %s   _ %5d %s\n" "+" "$(date '+%F %T')" \
-				"$(git rev-parse --short HEAD 2>/dev/null || echo "-------")" \
-				"$nonce" "$*" \
-				>>"$ADW_PROJ_ROOT_DIR/$ADW_PROJ_LOG"
+		cmd_path="$ADW_PROJ_ROOT_DIR/$ADW_PROJ_CMDS_DIR/$matched_path/$ADW_FNAME_CMD"
+		if [ -f "$cmd_path" ]; then
 			# args_left[@] is tricky here since args_left could be an empty array
 			# ref: https://stackoverflow.com/questions/7577052/bash-empty-array-expansion-with-set-u
-			bash "$ADW_PROJ_ROOT_DIR/$ADW_PROJ_CMDS_DIR/$matched_path/$ADW_FNAME_CMD" "${args_left[@]+"${args_left[@]}"}"
-			ret=$?
-			# write finish log
-			printf "%s %s %s %3d %5d %s\n" "-" "$(date '+%F %T')" \
-				"$(git rev-parse --short HEAD 2>/dev/null || echo "-------")" \
-				"$ret" "$nonce" "$*" \
-				>>"$ADW_PROJ_ROOT_DIR/$ADW_PROJ_LOG"
-			exit $ret
+			try_exec "${args_left[@]+"${args_left[@]}"}"
 		fi
 
 		if [ ${#args_left[@]} -gt 0 ]; then

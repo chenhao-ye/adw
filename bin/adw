@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export ADW_HOME="${ADW_HOME:=$HOME/.adwarts}"
+export ADW_HOME="${ADW_HOME:-$HOME/.adwarts}"
 
 # Load environment variables
 # shellcheck disable=SC1091
