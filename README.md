@@ -168,7 +168,7 @@ ADW also has other fancy functionality e.g. a library for data management. Pleas
 
 ## Motivation
 
-ADW is abstracted from uFS (yes, the example above is not fictional; uFS is real) submission of artifact evaluation to SOSP 2021. We would like to automate the experiments to make reviewers' jobs easier. When working on the automation, we encountered a few tricky problems:
+ADW is abstracted from [uFS](https://github.com/WiscADSL/uFS) (yes, the example above is not fictional; uFS is real) submission of artifact evaluation to SOSP 2021. We would like to automate the experiments to make reviewers' jobs easier. When working on the automation, we encountered a few tricky problems:
 
 1. We have many experiments to run, so we have to make a long list to organize the logical connections between experiments and what configuration to use. This eventually became the prototype of `adw.yaml`. `adw.yaml` is designed to show the logical connections between experiments clearly. Anyone new to the project is expected to read `adw.yaml` to get the high-level pictures of experiments easily.
 
