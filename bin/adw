@@ -46,7 +46,6 @@ load_proj() {
 		# TODO: handle readlink failure?
 	fi
 	export ADW_PROJ_ROOT_DIR="$proj_root"
-	export ADW_PROJ_DATA="$ADW_PROJ_ROOT_DIR/$ADW_PROJ_DATA_DIR"
 	if [ ! -d "$ADW_PROJ_ROOT_DIR/$ADW_PROJ_CMDS_DIR" ]; then
 		echo "Detect the project is not loaded yet..."
 		echo "Try \`adw proj load\` first..."

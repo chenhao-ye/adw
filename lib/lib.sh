@@ -2,7 +2,7 @@
 
 # This script is design to be used by users
 # To use this libary:
-#     source "$ADW_HOME/lib/lib.sh"
+#     source "$ADW_LIB"
 # All shell functions in this script will prefix with `adw` to avoid conflict
 
 # append a string to a file if this line not already exists
