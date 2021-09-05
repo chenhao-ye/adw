@@ -69,7 +69,7 @@ In addition, you want to enforce these constraints:
 - One must do `init` before any `build`.
 - Before running LevelDB for uFS (regardless which trace), one must compile LevelDB with uFS's APIs first. Same for ext4.
 
-When using ADW, the user provides a configuration file `adw.yaml`, located at the top-level directory of the uFS codebase (just like `Dockerfile` and `Makefile`). `adw.yaml` describes the tree-like workflow above and specifies what scripts/shell commands to run for each path from a predicate to a leaf (e.g. `init`, `build/leveldb/ufs`, `run/leveldb/ufs/ycsb-a`). The detailed tutorials of `adw.yaml` can be found [here](doc).
+When using ADW, the user provides a configuration file `adw.yaml`, located at the top-level directory of the uFS codebase (just like `Dockerfile` and `Makefile`). `adw.yaml` describes the tree-like workflow above and specifies what shell commands to run for each path from a predicate to a leaf (e.g. `init`, `build/leveldb/ufs`, `run/leveldb/ufs/ycsb-a`). The detailed tutorials of `adw.yaml` can be found [here](docs/README.md).
 
 ADW will load `adw.yaml` and enforce the constraints for you. For example, if you `build` without `init`:
 
@@ -163,3 +163,19 @@ Commit: 82a016f
 Status: 0
 Command: init
 ```
+
+ADW also has other fancy functionality e.g. a library for data management. Please refer to the [document](docs/README.md) for more information.
+
+## Motivation
+
+ADW is abstracted from uFS (yes, the example above is not fictional; uFS is real) submission of artifact evaluation to SOSP 2021. We would like to automate the experiments to make reviewers' jobs easier. When working on the automation, we encountered a few tricky problems:
+
+1. We have many experiments to run, so we have to make a long list to organize the logical connections between experiments and what configuration to use. This eventually became the prototype of `adw.yaml`. `adw.yaml` is designed to show the logical connections between experiments clearly. Anyone new to the project is expected to read `adw.yaml` to get the high-level pictures of experiments easily.
+
+2. We have to write a lot of redundant code to sanity check command-line arguments to make things as fool-proof as possible. This directly motivates us to build ADW, which reads a configuration and do sanity check for you. Moreover, it's very nature to see the dependency relationship between steps, so we add dependency enforcement into ADW.
+
+3. Our experiments require some environment variables set. This means that every time starting an `tmux` session, one must run some `source`. Sometime we forgot, and the script crashed minutes later. Putting these environments into `.bashrc` could work, but it's not clean. We realize that we want a centralized entry point for all experiments, and this entry point takes care of loading the environment variables. This entry point later became the prototype of `adw` command, and we allow user to declare environment variables in `adw.yaml`.
+
+4. We want to optimize for data management and logging. Experiments produce a lot of data, and we must give a unique label for each one. We then wrapped a `mkdir` into a new directory creation shell function with a timestamp in the directory name. Later we found commit id is also useful, so we add it too. We also find shell's `history` doesn't contain enough information (e.g. we really want to know how long an experiment takes...), so we wrote one ourselves.
+
+5. We have a lot of scripts written, and we want a uniform system to glue them together. Often, a script A may want to run another script B. How to find B becomes tricky. One could surely hard-code every absolute path, so A always knows exact location of B. This could work well, except you would be cursed by a later maintainer. Alternatively, A could use a relative path, but this implicitly assumes the current working directory when A is running. Eventually, we decide to declare an environment variable for the absolute path of the codebase's top directory, and A could find B as long as A knows B's location relative to the codebase's top directory. How to enforce this environment variable declared is handled by problem 3.
