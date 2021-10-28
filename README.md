@@ -30,12 +30,15 @@ To uninstall:
 ./install.sh -u
 ```
 
-OR you could try single-line install/uninstall command:
+OR you could try single-line install command:
 
 ```bash
-# install
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/chenhao-ye/adw/main/install.sh)" install.sh -p
-# uninstall
+```
+
+and single-line uninstall command:
+
+```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/chenhao-ye/adw/main/install.sh)" install.sh -u
 ```
 
