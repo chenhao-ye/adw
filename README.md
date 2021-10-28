@@ -20,9 +20,6 @@ To install `adw`:
 
 ```bash
 ./install.sh
-echo 'export ADW_HOME="$HOME/.adwarts"' >> ~/.bashrc # or .zshrc
-echo 'export PATH="$PATH:$ADW_HOME/bin"' >> ~/.bashrc
-source ~/.bashrc
 ```
 
 This will install ADW to `~/.adwarts`.
@@ -31,7 +28,15 @@ To uninstall:
 
 ```bash
 ./install.sh -u
-# you may need to remove environment variables settings from ~/.bashrc yourself
+```
+
+OR you could try single-line install/uninstall command:
+
+```bash
+# install
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/chenhao-ye/adw/main/install.sh)" install.sh -p
+# uninstall
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/chenhao-ye/adw/main/install.sh)" install.sh -u
 ```
 
 ## Overview
