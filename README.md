@@ -30,7 +30,7 @@ To uninstall:
 ./install.sh -u
 ```
 
-OR you could try single-line install command:
+OR you could try single-line install command, which even does `git clone` for you:
 
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/chenhao-ye/adw/main/install.sh)" install.sh -p
