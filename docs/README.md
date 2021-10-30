@@ -271,7 +271,7 @@ $ adw proj load
 ADW: Load project uFS successfully
 ```
 
-Now if you try `adw`, you should see the help message in `adw.yaml` also shows up.
+Now if you try `adw`, you should see the help message in `adw.yaml` also shows up. Note in the latest version, adw can do such `adw proj load` automatically the first time trying to execute a predicate.
 
 ```console
 $ adw

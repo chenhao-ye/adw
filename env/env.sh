@@ -29,3 +29,6 @@ export ADW_DNAME_DEPS="ADW_DEPS"
 
 # config file name to read when loading the project
 export ADW_PROJ_CONFIG="adw.yaml"
+
+# instead of requiring "adw proj load", load it automatically
+export ADW_AUTO_LOAD="true"

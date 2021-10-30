@@ -42,6 +42,8 @@ and single-line uninstall command:
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/chenhao-ye/adw/main/install.sh)" install.sh -u
 ```
 
+Note you may need to restart the shell to load the new environment variables.
+
 ## Overview
 
 ADW uses a workflow model named "predicates and hierarchical targets." Let's talk about it with a quick example. Suppose you have developed a novel user-level filesystem called uFS. Now you want to automate the workflow of compiling and benchmarking uFS and ext4 against LevelDB workload. The workflow could be divided into three steps: `init`, `build`, and `run`. We call these steps "predicates." The workflow of this experiment could be modeled as:

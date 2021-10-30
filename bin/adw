@@ -47,14 +47,30 @@ load_proj() {
 	fi
 	export ADW_PROJ_ROOT_DIR="$proj_root"
 	if [ ! -d "$ADW_PROJ_ROOT_DIR/$ADW_PROJ_CMDS_DIR" ]; then
-		echo "Detect the project is not loaded yet..."
-		echo "Try \`adw proj load\` first..."
-		echo ""
-		print_adw_usage_and_exit
+		if [ "$ADW_AUTO_LOAD" = "true" ]; then
+			# shellcheck disable=SC1091
+			source "$ADW_HOME/src/proj.sh"
+			proj_load
+			ret="$?"
+			if [ ! "$ret" = "0" ]; then exit "$ret"; fi
+		else
+			echo "Detect the project is not loaded yet..."
+			echo "Try \`adw proj load\` first..."
+			echo ""
+			print_adw_usage_and_exit
+		fi
 	fi
 	if [ "$ADW_PROJ_ROOT_DIR/$ADW_PROJ_CONFIG" -nt "$ADW_PROJ_ROOT_DIR/$ADW_PROJ_CMDS_DIR" ]; then
-		echo "WARN: Detect $ADW_PROJ_CONFIG has modified recently..."
-		echo "Try \`adw proj load\` to apply latest modification"
+		if [ "$ADW_AUTO_LOAD" = "true" ]; then
+			# shellcheck disable=SC1091
+			source "$ADW_HOME/src/proj.sh"
+			proj_load
+			ret="$?"
+			if [ ! "$ret" = "0" ]; then exit "$ret"; fi
+		else
+			echo "WARN: Detect $ADW_PROJ_CONFIG has modified recently..."
+			echo "Try \`adw proj load\` to apply latest modification"
+		fi
 	fi
 	adw_source_if_exist "$ADW_PROJ_ROOT_DIR/$ADW_PROJ_ENV"
 }
