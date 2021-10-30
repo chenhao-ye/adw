@@ -61,7 +61,7 @@ def dump_env(config: Dict) -> None:
         f.write(f"# If any change is needed, update {CONFIG_FNAME} instead.\n")
         for env_dict in config["adw_meta"]["env"]:
             for k, v in env_dict.items():  # actually only one element
-                f.write(f"{k}={v}\n")
+                f.write(f"export {k}={v}\n")
 
 
 class Target:
